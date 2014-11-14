@@ -53,6 +53,21 @@ One could then imagine that, if given a number of partition generating functions
 
 \subsection*{Classification When K = 2}
 
-Let's consider the special case of when we are simply trying to classify 
+Let's consider the special case of when we are simply trying to separate the given songs into two playlists. In this case, we can simply look at the problem as a classification problem, but there are a number of subtleties involved. It would be great if we could simply combine all of individual partitions into one giant set of training examples, but we don't know in each training example which partition should be viewed as the positive examples. We need to consider each possible labelling of the examples partitions, of which there are $2^m$. We could consider each possible labelling of the individual partitions, then train a single classifier on all of them together, then pick the classifier that gave the smallest training error depending on the labelling. This too has issues however. Note that we aren't necessarily interested in a true classifier that gives either a yes-no answer, but rather interested in the relative differences between songs. If we were to use a classifier that returned a score, we could then turn that into a partitioner by simply sorting the given songs by their score, then splitting that sorted list into two (instead of dividing it at 0).
+
+There is a still an issue that needs to be addressed. Consider the image below, where we have two training sets $S_1$ and $S_2$ and we want to train a linear classifier of the form $h(x) = w^\top x + b$ for the two sets. A linear classifier trained on $S_1$ would give the red line, and one trained on $S_2$, but if we were to train one on both sets combined, we would get something like the blue line, which does a very poor job of classifying the data. We can avoid this issue by assigning a separate intercept term to training set, so that we get a single weight vector $w$ that indicates the general axis we're comparing songs on.
+
+\includegraphics[scale=0.5]{interceptTerms}
+
+\section*{Data}
+
+We are currently pulling data from SoundCloud using their API. Some of the features regarding the songs that we have include:
+\begin{enumerate}
+  \item Length
+  \item Artist
+  \item Number of Comments
+\end{enumerate}
+
+
 
 \end{document}
