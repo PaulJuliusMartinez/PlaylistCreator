@@ -9,7 +9,6 @@ class FeatureCache:
     def __init__(self):
         self.featureFile = 'songFeatures.json'
         self.features = {}
-        self.loadFromFile()
         self.currentVersion = 1
 
         self.loadFromFile()
