@@ -21,6 +21,7 @@ class SoundCloudDownload:
       self.download_progress = 0
       self.current_time = time.time()
       self.titleList = []
+      self.idList = []
       self.artistList = []
       self.likes = False   
       self.streamURLlist = self.getStreamURLlist(self.url)
@@ -55,6 +56,7 @@ class SoundCloudDownload:
       for track in tracks:
          waveform_url = track['waveform_url']
          self.titleList.append(self.getTitleFilename(track['title']))
+         self.idList.append(track['id'])
          self.artistList.append(track['user']['username'])
          regex = re.compile("\/([a-zA-Z0-9]+)_")
          r = regex.search(waveform_url)
@@ -64,7 +66,7 @@ class SoundCloudDownload:
 
    def addID3(self, title, artist):
       try:
-         id3info = ID3("{0}.mp3".format(title))
+         id3info = ID3("./downloads/{0}.mp3".format(title))
          # Slicing is to get the whole track name
          # because SoundCloud titles usually have
          # a dash between the artist and some name
@@ -81,14 +83,15 @@ class SoundCloudDownload:
    
    def downloadSongs(self):
       done = False
-      for artist, title, streamURL in zip(self.artistList, self.titleList, self.streamURLlist):
+      for artist, id, streamURL in zip(self.artistList, self.idList, self.streamURLlist):
          if not done:
-            filename = "{0}.mp3".format(title)
+            filename = "./downloads/{0}.mp3".format(id)
+            print filename
             sys.stdout.write("\nDownloading: {0}\n".format(filename))
             try:
                if not os.path.isfile(filename):
                   filename, headers = urllib.urlretrieve(url=streamURL, filename=filename, reporthook=self.report)
-                  self.addID3(title, artist)
+                  self.addID3(id, artist)
                   # reset download progress to report multiple track download progress correctly
                   self.download_progress = 0
                elif self.likes:

@@ -1,0 +1,4 @@
+res/downloads/*
+*.DS_Store
+*latexmk
+*.log
