@@ -1,10 +1,27 @@
 import soundcloud
 import json
 
-json_data = open("res/data.json")
-data = json.load(json_data)
+playlists = []
+songContent = {}
+playlistPairs = []
 
 client = soundcloud.Client(client_id="94931d15df645c93103e0cd600377922")
+
+def buildPlaylistPairs():
+	currentPair = ()
+	p1 = []
+	p2 = []
+	for i in xrange(len(playlists)):
+		p1 = playlists[i]
+		for j in xrange(i+1, len(playlists)):
+			p2 = playlists[j]
+			for song1 in playlists[i]:
+				for song2 in playlists[j]:
+					if song1 == song2:
+						p1.remove(song1)
+						p2.remove(song1)
+			currentPair = (p1, p2)
+			playlistPairs.append(currentPair)
 
 def addFeature(featureVec, track, featureName):
 	if featureName in track:
@@ -15,46 +32,78 @@ def addFeature(featureVec, track, featureName):
 def getPlaylist(urlstring):
 	playlist = client.get('/resolve', url=urlstring)
 	tracks = playlist.tracks
-	data[playlist.title] = {}
+	currentPlaylist = []
+	print "Getting playlist:", playlist.title
 	for track in playlist.tracks:
-		print track
-		print '==========================='
+		# if not track['streamable']: 
+		# 	print "Skipping song", track['title'], "because it is not streamable"
+		# 	continue
+		if track['id'] in songContent: 
+			print "Skipping song", track['title'], "because it has already been processed"
+			continue
+
 		featureVector = {}
-
-		# featureVector["title"] = track['title']
-		# featureVector["duration"] = track['duration']
-		# featureVector["genre"] = track['genre']
-		# featureVector["year"] = track['release_year']
-		# featureVector["type"] = track['track_type']
-		# featureVector["bpm"] = track['bpm']
-		# featureVector["key_signature"] = track['key_signature']
-		# featureVector["plays"] = track['playback_count']
-		# featureVector["favorites"] = track['favoritings_count']
-		# featureVector["downloads"] = track['download_count']
-		# featureVector["tags"] = track['tag_list']
-
+		addFeature(featureVector, track, 'id')
+		addFeature(featureVector, track, 'created_at')
+		addFeature(featureVector, track, 'user')
 		addFeature(featureVector, track, 'title')
+		addFeature(featureVector, track, 'sharing')
+		addFeature(featureVector, track, 'description')
+		addFeature(featureVector, track, 'label_name')
+		addFeature(featureVector, track, 'license')
 		addFeature(featureVector, track, 'duration')
 		addFeature(featureVector, track, 'genre')
 		addFeature(featureVector, track, 'release_year')
 		addFeature(featureVector, track, 'track_type')
 		addFeature(featureVector, track, 'bpm')
 		addFeature(featureVector, track, 'key_signature')
+		addFeature(featureVector, track, 'comment_count')
 		addFeature(featureVector, track, 'playback_count')
 		addFeature(featureVector, track, 'favoritings_count')
 		addFeature(featureVector, track, 'download_count')
 		addFeature(featureVector, track, 'tag_list')
 
-		data[playlist.title][track['title']] = featureVector
+
+		#change to download the specific song using soundcloud-downloader.py and extract
+		#features from it here
+		fileLoc = "~/Desktop/playlists/" + playlist.title + "/" + str(track['id']) + ".mp3"
+		featureVector['file_location'] = fileLoc
+
+		songContent[track['id']] = featureVector
+		currentPlaylist.append(track['id'])
+	if len(currentPlaylist) == 0: return
+	print "Saving playlist:", playlist.title
+	playlists.append(currentPlaylist)
 
 
 getPlaylist('https://soundcloud.com/calstud/sets/ski-dock')
 getPlaylist('https://soundcloud.com/calstud/sets/tom-misch')
+getPlaylist('https://soundcloud.com/calstud/sets/lemaitre')
+getPlaylist('https://soundcloud.com/calstud/sets/pogo')
+getPlaylist('https://soundcloud.com/zach-saraf/sets/dope')
+getPlaylist('https://soundcloud.com/zach-saraf/sets/perchance')
+getPlaylist('https://soundcloud.com/zach-saraf/sets/rap')
+getPlaylist('https://soundcloud.com/zach-saraf/sets/spring')
+getPlaylist('https://soundcloud.com/zach-saraf/sets/perchance-2')
+getPlaylist('https://soundcloud.com/zach-saraf/sets/perchance-3')
+getPlaylist('https://soundcloud.com/zach-saraf/sets/coachella-road-trip')
+getPlaylist('https://soundcloud.com/franzwarning/sets/sunmusic')
+getPlaylist('https://soundcloud.com/franzwarning/sets/sunset-parties')
+getPlaylist('https://soundcloud.com/franzwarning/sets/of-late')
+getPlaylist('https://soundcloud.com/franzwarning/sets/coachella-darties')
+getPlaylist('https://soundcloud.com/pb-kjelly/sets/new-new-synthy-wunderland')
+getPlaylist('https://soundcloud.com/pb-kjelly/sets/bish-dont-kill-my-vibe')
+getPlaylist('https://soundcloud.com/pb-kjelly/sets/chilled-out')
+
+buildPlaylistPairs()
 
 # track = client.get('/resolve', url='https://soundcloud.com/toddterje/todd-terje-inspector-norse')
 
-with open('res/data.json', 'w') as outfile:
-  json.dump(data, outfile)
-print data
+with open('res/playlists.json', 'w') as outfile:
+  json.dump(playlists, outfile)
+with open('res/songContent.json', 'w') as outfile:
+  json.dump(songContent, outfile)
+with open('res/playlistPairs.json', 'w') as outfile:
+  json.dump(playlistPairs, outfile)
 
 
