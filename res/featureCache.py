@@ -9,9 +9,7 @@ class FeatureCache:
     def __init__(self):
         self.featureFile = 'songFeatures.json'
         self.features = {}
-        self.loadFromFile()
         self.currentVersion = 1
-
         self.loadFromFile()
 
         # Initialize soundcloud connection
@@ -32,12 +30,15 @@ class FeatureCache:
 
     def loadFromFile(self):
         self.features = json.load(open(self.featureFile))
+        print self.features
 
     def saveToFile(self):
         with open(self.featureFile, 'w') as outfile:
+            outfile.truncate()
             json.dump(self.features, outfile)
 
     def getFeature(self, songID):
+        songID = unicode(str(songID))
         if songID in self.features:
             version = self.features[songID]['version']
             features = self.features[songID]['features']
@@ -47,10 +48,7 @@ class FeatureCache:
         return self.createNewEntry(songID)
 
     def createNewEntry(self, songID):
-        print '/tracks/' + str(songID)
         track = self.client.get('/tracks/' + str(songID))
-        print track
-        print track.id
         self.features[songID] = {}
         self.features[songID]['version'] = self.currentVersion
 
@@ -83,10 +81,8 @@ class FeatureCache:
         featureVector['lowFreq'] = numpy.percentile(output['maxfreq'], 10)
 
         self.features[songID]['features'] = featureVector
-        print featureVector
 
 cache = FeatureCache()
-cache.loadFromFile()
 feature = cache.getFeature(32850380)
 cache.saveToFile()
 
