@@ -5,29 +5,36 @@ import numpy as np
 from util import *
 
 def main():
+  s = 0.0
+  for _ in range(900):
+    a = [range(15), range(15, 30)]
+    b = range(30)
+    random.shuffle(b)
+    s += countDiffs(a, b) / 30.0
+  print s / 900.0
+    
   playlists = loadPlaylists()
-  train = playlists[:8]
+  train = playlists[:9]
   validation = playlists[10:20]
   test = playlists[20:30]
 
   # Results: Map from partition string to (weightVector, trainScore, validationScore)
   results = {}
 
-  numAssignments = 1
+  numAssignments = 50
   for _ in range(numAssignments):
     assignment = generateNewAssignment(results, len(train))
-    print assignment
     labeledData = labelData(train, assignment)
     classifier = MultiLinearClassifier()
     classifier.trainModel(labeledData, len(train))
     trainScore = classifier.testModel(train)
-    #validationScore = classifier.testModel(validation)
-    #print assignment, trainScore, validationScore
-    #results[assignment] = (classifier.weights, trainScore, validationScore)
+    validationScore = classifier.testModel(validation)
+    print trainScore, validationScore
+    results[assignment] = (classifier.weights, trainScore, validationScore)
 
 def generateNewAssignment(oldAssignments, count):
   while True:
-    assignment = ''.join(random.choice('01') for _ in range(count))
+    assignment = '1' + ''.join(random.choice('01') for _ in range(count - 1))
     if not assignment in oldAssignments:
       return assignment
 
@@ -62,39 +69,36 @@ class MultiLinearClassifier:
           f['PLAYLIST_ORIGIN' + str(i)] = 0
       return f
 
-    """
-    # Simple predictor
-    def predictor(songID, playlistNum):
-      score = dotProduct(self.weights, extractFeature(songID, playlistNum))
-      if (score > 0): return 1
-      return -1
+#    # Simple predictor
+#    def predictor(songID, playlistNum):
+#      score = dotProduct(self.weights, extractFeature(songID, playlistNum))
+#      if (score > 0): return 1
+#      return -1
+#
+#    # Evaluate crude predictor progress
+#    def evaluatePredictor(examples, predictorFn):
+#      error = 0
+#      for song, playlist, score in examples:
+#        if predictorFn(song, playlist) != score:
+#          error += 1
+#      return 1.0 * error / len(examples)
+#
+#    numIters = 30
+#    eta = 0.001
+#    for l in xrange(numIters):
+#      print "Train Error: ", evaluatePredictor(data, predictor)
+#      random.shuffle(data)
+#      for songID, playlistNum, score in data:
+#        features = extractFeature(songID, playlistNum)
+#        margin = dotProduct(self.weights, features) * score
+#        #print songID, playlistNum, score, dotProduct(self.weights, features)
+#        if (margin < 1):
+#          increment(self.weights, eta * score, features)
+#    for key in self.weights: print '\t', key, self.weights[key]
 
-    # Evaluate crude predictor progress
-    def evaluatePredictor(examples, predictorFn):
-      error = 0
-      for song, playlist, score in examples:
-        if predictorFn(song, playlist) != score:
-          error += 1
-      return 1.0 * error / len(examples)
-
-    numIters = 30
-    eta = 0.001
-    for l in xrange(numIters):
-      print "Train Error: ", evaluatePredictor(data, predictor)
-      random.shuffle(data)
-      for songID, playlistNum, score in data:
-        features = extractFeature(songID, playlistNum)
-        margin = dotProduct(self.weights, features) * score
-        #print songID, playlistNum, score, dotProduct(self.weights, features)
-        if (margin < 1):
-          increment(self.weights, eta * score, features)
-    for key in self.weights: print '\t', key, self.weights[key]
-    """
-
-    #
-    A = np.zeros((len(data), 13 + numPlaylists))
-    Y = np.zeros((len(data), 1))
     fs = featureCache.featureOrder
+    A = np.zeros((len(data), len(fs) + numPlaylists))
+    Y = np.zeros((len(data), 1))
     for i, pack in enumerate(data):
       songID, playlistNum, score = pack
       Y[i] = score
@@ -102,7 +106,7 @@ class MultiLinearClassifier:
       for j, key in enumerate(fs):
         A[i][j] = features[key]
       for j in range(numPlaylists):
-        A[i][len(fs) + j] = features['PLAYLIST_ORIGIN' + str(j)]
+        A[i][len(fs) + j] = 1 if j == playlistNum else 0
 
     A = np.matrix(A)
     Y = np.matrix(Y)
@@ -117,6 +121,7 @@ class MultiLinearClassifier:
 
 
   def testModel(self, validatedData):
+    err = 0
     for playlist in validatedData:
       songs = playlist[0] + playlist[1]
       scores = []
@@ -124,9 +129,9 @@ class MultiLinearClassifier:
         scores.append((dotProduct(self.weights, cache.getFeature(song)), song))
       scores.sort()
 
-      countDiffs(playlist, [x[1] for x in scores])
+      err += countDiffs(playlist, [x[1] for x in scores]) / float(len(playlist[0]))
 
-    return 0
+    return err / len(validatedData)
 
 
 # Save and Load cache

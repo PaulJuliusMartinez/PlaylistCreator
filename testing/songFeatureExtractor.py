@@ -8,7 +8,7 @@ playlistPairs = []
 client = soundcloud.Client(client_id="94931d15df645c93103e0cd600377922")
 
 # These are songs that can't be downloaded. Don't add them to playlists.
-blacklist = [53433975, 169850810, 59051244, 76989671]
+blacklist = [53433975, 169850810, 59051244, 76989671, 88606549, 75868018, 93555520, 44168358, 88078067, 98391174, 63424835, 124170847, 131827025, 64065407, 120911249]
 
 
 def buildPlaylistPairs():
@@ -16,15 +16,16 @@ def buildPlaylistPairs():
     p1 = []
     p2 = []
     for i in xrange(len(playlists)):
-        p1 = playlists[i]
+        p1 = playlists[i][:]
         for j in xrange(i+1, len(playlists)):
-            p2 = playlists[j]
+            p2 = playlists[j][:]
             for song1 in playlists[i]:
                 for song2 in playlists[j]:
                     if song1 == song2:
                         p1.remove(song1)
                         p2.remove(song1)
-            currentPair = (p1, p2)
+            l = min(len(p1), len(p2))
+            currentPair = (p1[:l], p2[:l])
             playlistPairs.append(currentPair)
 
 def addFeature(featureVec, track, featureName):
