@@ -6,31 +6,49 @@ from util import *
 
 def main():
   s = 0.0
+  l = 50
   for _ in range(900):
-    a = [range(15), range(15, 30)]
-    b = range(30)
+    a = [range(l / 2), range(l / 2, l)]
+    b = range(l)
     random.shuffle(b)
-    s += countDiffs(a, b) / 30.0
+    s += countDiffs(a, b) / (float(l) / 2.0)
   print s / 900.0
-    
+
   playlists = loadPlaylists()
-  train = playlists[:9]
-  validation = playlists[10:20]
-  test = playlists[20:30]
+  train = playlists[:80]
+  validation1 = playlists[80:100]
+  validation2 = playlists[100:120]
+  test = playlists[120:]
 
   # Results: Map from partition string to (weightVector, trainScore, validationScore)
   results = {}
 
-  numAssignments = 50
+  numAssignments = 300
+  best = MultiLinearClassifier()
+  bestTestErr = 1
+  totalTrainErr = 0
+  totalValidationErr = 0
   for _ in range(numAssignments):
     assignment = generateNewAssignment(results, len(train))
     labeledData = labelData(train, assignment)
     classifier = MultiLinearClassifier()
     classifier.trainModel(labeledData, len(train))
     trainScore = classifier.testModel(train)
-    validationScore = classifier.testModel(validation)
-    print trainScore, validationScore
-    results[assignment] = (classifier.weights, trainScore, validationScore)
+    validationScore1 = classifier.testModel(validation1)
+    validationScore2 = classifier.testModel(validation2)
+    testScore = classifier.testModel(test)
+    totalTrainErr += trainScore
+    totalValidationErr += validationScore1
+    if (validationScore1 < bestTestErr):
+      bestTestErr = validationScore1
+      best = classifier
+    print '{0} {1};'.format(validationScore1, validationScore2)
+    results[assignment] = (classifier.weights, trainScore, validationScore1)
+
+  print bestTestErr
+  print best.testModel(test)
+  print 'avg train:', totalTrainErr / float(numAssignments)
+  print 'avg validation:', totalValidationErr / float(numAssignments)
 
 def loadPlaylists():
     return json.load(open('playlistPairs.json'))
