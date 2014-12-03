@@ -3,24 +3,29 @@ from featureCache import FeatureCache
 from util import *
 from collections import Counter
 import random
+import copy
 
 class KMeansExploreClassifier:
 	def __init__(self):
 		self.featureCache = FeatureCache()
-		self.weights = Counter()
-		self.centroids = {}
+		self.beamSize = 3
+		self.bestWeights = []
+		self.centroids = [Counter(), Counter()]
 		self.initializeWeights()
 
-	def weightedDistance(self, point1, point2):
+	def weightedDistance(self, weights, point1, point2):
 		result = 0
 		for key in point1:
-			result += self.weights.get(key, 0) * (point1.get(key, 0) - point2.get(key, 0))**2
+			result += weights.get(key) * (point1.get(key, 0) - point2.get(key, 0))**2
 		return result
 
 	def initializeWeights(self):
-		exampleFeature = self.featureCache.getFeature(103281373)
-		for key, value in exampleFeature.iteritems():
-			self.weights[key] = random.uniform(0, 3)
+		exampleFeature = self.featureCache.getFeature(33387088)
+		for i in range(self.beamSize):
+			weights = Counter();
+			for key, value in exampleFeature.iteritems():
+				weights[key] = 1
+			self.bestWeights.append(weights)
 
 	def initializeCentroids(self, songs):
 		randomIndex1 = random.randint(0, len(songs)-1)
@@ -30,23 +35,23 @@ class KMeansExploreClassifier:
 		self.centroids[0] = self.featureCache.getFeature(songs[randomIndex1])
 		self.centroids[1] = self.featureCache.getFeature(songs[randomIndex2])
 
-	def assignSongs(self, centroids, songs):
+	def assignSongs(self, weights, songs):
 		playlists = [[],[]]
 		for song in songs:
-			dist1 = self.weightedDistance(self.featureCache.getFeature(song), centroids[0])
-			dist2 = self.weightedDistance(self.featureCache.getFeature(song), centroids[1])
+			dist1 = self.weightedDistance(weights, self.featureCache.getFeature(song), self.centroids[0])
+			dist2 = self.weightedDistance(weights, self.featureCache.getFeature(song), self.centroids[1])
 			if dist1 < dist2: playlists[0].append(song)
 			else: playlists[1].append(song)
 		return playlists
 
-	def updateCentroids(self, centroids, playlists):
+	def updateCentroids(self, playlists):
 		for i in xrange(len(playlists)):
+			self.centroids[i] = Counter()
 			for song in playlists[i]:
 				feature = self.featureCache.getFeature(song)
-				centroids[i] = {}
 				for key in feature:
-					toAdd = 1/len(playlists[i]) * feature[key]
-					centroids[i][key] = centroids[i].get(key, 0) + toAdd
+					toAdd = float(1)/len(playlists[i]) * feature[key]
+					self.centroids[i][key] = self.centroids[i].get(key, 0) + toAdd
 
 	#number of songs that aren't in test that should be
 	def playlistDiff(self, test, correct):
@@ -60,62 +65,99 @@ class KMeansExploreClassifier:
 		return min(self.playlistDiff(test[0], correct[0]) + self.playlistDiff(test[1], correct[1]), \
 			self.playlistDiff(test[0], correct[1]) + self.playlistDiff(test[1], correct[0]))
 
-	def generateNewWeights(self):
-		possibleWeights = []
-		numNewWeights = 10
-		for i in xrange(10):
-			newWeights = {}
-			for key in self.weights:
-				newWeights[key] = max(self.weights[key] + random.uniform(-1, 1), 0)
-			possibleWeights.append(newWeights)
-		return possibleWeights
+	def generatePossibleDirections(self):
+		possibleDirections = []
+		numNewDirections = 20
+		for i in xrange(numNewDirections):
+			newDirection = Counter()
+			for key in self.bestWeights[0]:
+				newDirection[key] = max(random.uniform(-0.25, 0.25), 0)
+			possibleDirections.append(newDirection)
+		noMovement = Counter()
+		for key in self.bestWeights[0]:
+			noMovement[key] = 0
+		possibleDirections.append(noMovement)
+		return possibleDirections
 
-	def cluster(self, songs):
-		numIters = 10
-		self.initializeCentroids(songs)			
+	def cluster(self, weights, songs):
+		numIters = 20
+		self.initializeCentroids(songs)
 		for i in xrange(numIters):
-			playlists = self.assignSongs(self.centroids, songs)
-			self.updateCentroids(self.centroids, playlists)
+			if self.centroids[0] == self.centroids[1]: print "ERROR: CENTROIDS ARE THE SAME"
+			playlists = self.assignSongs(weights, songs)
+			self.updateCentroids(playlists)
 		return playlists
 
 	def train(self, trainingPlaylistPairs):
+		totalLoss = 0
+		count = 0
+		numIters = 20
+		eta = 0.1
 		for trainPair in trainingPlaylistPairs:
-			songs = []
-			for song in trainPair[0]: 
-				songs.append(song)
-			for song in trainPair[1]:
-				songs.append(song)
+			count += 1
+			songs = trainPair[0] + trainPair[1]
 
-			possibleWeights = self.generateNewWeights()
-			bestLoss = 0
-			bestWeights = 0
-			for i in xrange(len(possibleWeights)):
-				self.weights = possibleWeights[i]
-				playlists = self.cluster(songs)
-				loss = self.loss(playlists, trainPair)
-				if i == 0 or loss < bestLoss: 
-					bestLoss = loss
-					bestWeights = i
-			self.weights = possibleWeights[bestWeights]
-			print "TRAIN LOSS:", bestLoss
+			bestLosses = [500] * self.beamSize
+			bestWeights = [Counter()] * self.beamSize
+			for _ in xrange(numIters):
+				possibleDirections = self.generatePossibleDirections()
+				
+
+				for weights in copy.deepcopy(self.bestWeights):
+					for i in xrange(len(possibleDirections)):
+						currentWeights = weights + possibleDirections[i]
+						playlists = self.cluster(currentWeights, songs)
+						loss = self.loss(playlists, trainPair)
+						if loss < max(bestLosses): 
+							for index in range(self.beamSize):
+								if loss < bestLosses[index]:
+									bestLosses[index] = loss
+									newBestWeight = Counter()
+									for key in weights:
+										newBestWeight[key] = weights[key] + eta * possibleDirections[i][key]
+									bestWeights[index] = newBestWeight
+				self.bestWeights = bestWeights
+
+			totalLoss += float(bestLosses[0]) / len(songs)
+			print "Average Training Loss:", totalLoss / count
 
 	def test(self, testingPlaylistPairs):
+		totalLoss = 0
+		count = 0
 		for testPair in testingPlaylistPairs:
-			songs = []
-			for song in testPair[0]: 
-				songs.append(song)
-			for song in testPair[1]:
-				songs.append(song)
-			playlists = self.cluster(songs)
+			count += 1
+			songs = testPair[0] + testPair[1]
+			playlists = self.cluster(self.bestWeights[0], songs)
 
-			print "Playlist1 Size:", len(playlists[0]), "Playlist2 Size:", len(playlists[1])
-			print "Correct1 Size:", len(testPair[0]), "Correct2 Size:", len(testPair[1])
-			print "TEST LOSS:", self.loss(playlists, testPair)
+			loss = self.loss(playlists, testPair)
+			totalLoss += float(loss) / len(songs)
+			print "Average Testing Loss:", totalLoss / count
 
+def randomAssignPlaylists(songs):
+	playlists = [[],[]]
+	for song in songs:
+		playlists[random.randint(0,1)].append(song)
+	return playlists
+
+def randomAssignmentTest(classifier, testingPlaylistPairs):
+	totalLoss = 0
+	count = 0
+	for testPair in testingPlaylistPairs:
+		count += 1
+		songs = testPair[0] + testPair[1]
+		playlists = randomAssignPlaylists(songs)
+
+		loss = classifier.loss(playlists, testPair)
+		totalLoss += float(loss) / len(songs)
+		print "Average Random Loss:", totalLoss / count
+
+
+random.seed()
 classifier = KMeansExploreClassifier()
 playlists = loadPlaylists()
 train = playlists[:20]
 test = playlists[20:30]
 classifier.train(train)
 classifier.test(test)
+randomAssignmentTest(classifier, test)
 
