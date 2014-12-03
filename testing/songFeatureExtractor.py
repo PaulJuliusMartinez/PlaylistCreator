@@ -1,4 +1,5 @@
 import soundcloud
+import random
 import json
 
 playlists = []
@@ -8,7 +9,7 @@ playlistPairs = []
 client = soundcloud.Client(client_id="94931d15df645c93103e0cd600377922")
 
 # These are songs that can't be downloaded. Don't add them to playlists.
-blacklist = [53433975, 169850810, 59051244, 76989671, 88606549, 75868018, 93555520, 44168358, 88078067, 98391174, 63424835, 124170847, 131827025, 64065407, 120911249]
+blacklist = [53433975, 169850810, 59051244, 76989671, 88606549, 75868018, 93555520, 44168358, 88078067, 98391174, 63424835, 124170847, 131827025, 64065407, 120911249, 105561440, 110831711, 18063597]
 
 
 def buildPlaylistPairs():
@@ -27,6 +28,7 @@ def buildPlaylistPairs():
             l = min(len(p1), len(p2))
             currentPair = (p1[:l], p2[:l])
             playlistPairs.append(currentPair)
+    random.shuffle(playlistPairs)
 
 def addFeature(featureVec, track, featureName):
     if featureName in track:
