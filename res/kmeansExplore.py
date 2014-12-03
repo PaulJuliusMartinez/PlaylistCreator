@@ -95,7 +95,7 @@ class KMeansExploreClassifier:
 		bestWeights = [Counter()] * self.beamSize
 		for _ in xrange(numIters):
 			possibleDirections = self.generatePossibleDirections()
-			for weights in self.bestWeights:
+			for weights in copy.deepcopy(self.bestWeights):
 				for i in xrange(len(possibleDirections)):
 					totalLoss = 0
 					currentWeights = weights + possibleDirections[i]
