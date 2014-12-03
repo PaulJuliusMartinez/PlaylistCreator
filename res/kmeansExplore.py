@@ -37,11 +37,26 @@ class KMeansExploreClassifier:
 
 	def assignSongs(self, weights, songs):
 		playlists = [[],[]]
+		playlistLength = len(songs) / 2
 		for song in songs:
 			dist1 = self.weightedDistance(weights, self.featureCache.getFeature(song), self.centroids[0])
 			dist2 = self.weightedDistance(weights, self.featureCache.getFeature(song), self.centroids[1])
-			if dist1 < dist2: playlists[0].append(song)
-			else: playlists[1].append(song)
+			if dist1 < dist2: 
+				if len(playlists[0]) < playlistLength: playlists[0].append((dist1, song))
+				elif dist1 < min(playlists[0]):
+					toSwap = max(playlists[0])
+					playlist[0].remove(toSwap)
+					newDistance = self.weightedDistance(weights, self.featureCache.getFeature(toSwap[1]), self.centroids[1])
+					playlists[1].append((newDistance, toSwap[1]))
+				else: playlists[1].append((dist2, song))
+			else: 
+				if len(playlists[1]) < playlistLength: playlists[1].append((dist2, song))
+				elif dist2 < min(playlists[1]):
+					toSwap = max(playlists[1])
+					playlist[1].remove(toSwap)
+					newDistance = self.weightedDistance(weights, sef.featureCache.getFeature(toSwap[1]), self.centroids[0])
+					playlsts[0].append(newDistance, toSwap[1])
+				else: playlists[0].append((dist1, song))
 		return playlists
 
 	def updateCentroids(self, playlists):
@@ -67,16 +82,12 @@ class KMeansExploreClassifier:
 
 	def generatePossibleDirections(self):
 		possibleDirections = []
-		numNewDirections = 20
+		numNewDirections = 40
 		for i in xrange(numNewDirections):
 			newDirection = Counter()
 			for key in self.bestWeights[0]:
-				newDirection[key] = max(random.uniform(-0.25, 0.25), 0)
+				newDirection[key] = random.uniform(-0.5, 0.5)
 			possibleDirections.append(newDirection)
-		noMovement = Counter()
-		for key in self.bestWeights[0]:
-			noMovement[key] = 0
-		possibleDirections.append(noMovement)
 		return possibleDirections
 
 	def cluster(self, weights, songs):
@@ -89,7 +100,7 @@ class KMeansExploreClassifier:
 		return playlists
 
 	def train(self, trainingPlaylistPairs):
-		numIters = 20
+		numIters = 10
 		eta = 0.1
 		bestLosses = [2] * self.beamSize
 		bestWeights = [Counter()] * self.beamSize
@@ -111,15 +122,17 @@ class KMeansExploreClassifier:
 					#update best weights
 					for index in range(self.beamSize):
 						if averageLoss < bestLosses[index]:
+							print "UPDATING WEIGHTS!"
 							bestLosses.insert(index, averageLoss)
 							bestLosses.pop(self.beamSize)
 							newBestWeight = Counter()
 							for key in weights:
-								newBestWeight[key] = weights[key] + eta * possibleDirections[i][key]
+								newBestWeight[key] = max(weights[key] + eta * possibleDirections[i][key], 0)
 							bestWeights.insert(index, newBestWeight)
 							bestWeights.pop(self.beamSize)
+							break
 			self.bestWeights = bestWeights
-			print "Best Average Training Loss:", bestLosses[0]
+			print "Average Training Loss:", bestLosses[0]
 
 	def test(self, testingPlaylistPairs):
 		totalLoss = 0
@@ -130,8 +143,10 @@ class KMeansExploreClassifier:
 			playlists = self.cluster(self.bestWeights[0], songs)
 
 			loss = self.loss(playlists, testPair)
-			totalLoss += float(loss) / len(songs)
-			print "Average Testing Loss:", totalLoss / count
+			testLoss = float(loss) / len(songs)
+			totalLoss += testLoss
+			print "Test Loss:", testLoss
+		print "Average Testing Loss:", totalLoss / len(testingPlaylistPairs)
 
 	def validate(self, validationPlaylistPairs):
 		totalLoss = 0
@@ -142,8 +157,10 @@ class KMeansExploreClassifier:
 			playlists = self.cluster(self.bestWeights[0], songs)
 
 			loss = self.loss(playlists, testPair)
-			totalLoss += float(loss) / len(songs)
-			print "Average Validation Loss:", totalLoss / count
+			validationLoss = float(loss) / len(songs)
+			totalLoss += validationLoss
+			print "Validation Loss:", validationLoss
+		print "Average Validation Loss:", totalLoss / len(validationPlaylistPairs)
 
 def randomAssignPlaylists(songs):
 	playlists = [[],[]]
@@ -160,17 +177,19 @@ def randomAssignmentTest(classifier, testingPlaylistPairs):
 		playlists = randomAssignPlaylists(songs)
 
 		loss = classifier.loss(playlists, testPair)
-		totalLoss += float(loss) / len(songs)
-		print "Average Random Loss:", totalLoss / count
+		randomLoss = float(loss) / len(songs)
+		totalLoss += randomLoss
+		print "Random Loss:", randomLoss
+	print "Average Random Loss:", totalLoss / len(testingPlaylistPairs)
 
 
 random.seed()
 classifier = KMeansExploreClassifier()
 playlists = loadPlaylists()
-train = playlists[:40]
-validation = playlists[40:60]
-validation2 = playlists[60:80]
-test = playlists[80:110]
+train = playlists[:20]
+validation = playlists[20:40]
+validation2 = playlists[40:60]
+test = playlists[60:100]
 classifier.train(train)
 classifier.validate(validation)
 classifier.validate(validation2)
