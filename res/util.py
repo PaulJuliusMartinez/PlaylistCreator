@@ -17,17 +17,12 @@ def countDiffs(originals, calculated):
     c1 = calculated[:len(p1)]
     c2 = calculated[-len(p2):]
 
-    c3 = calculated[-len(p1):]
-    c4 = calculated[:len(p2)]
-
     # Compare p1/c1 and p2/c2
-    numWrong = 0
-    numWrong += sum(0 if song in p1 else 1 for song in c1)
-    numWrong += sum(0 if song in p2 else 1 for song in c2)
-    print numWrong
+    numWrongA = 0
+    numWrongA += sum(0 if song in p1 else 1 for song in c1)
 
     # Compare p1/c3 and p2/c4
-    numWrong = 0
-    numWrong += sum(0 if song in p1 else 1 for song in c3)
-    numWrong += sum(0 if song in p2 else 1 for song in c4)
-    print numWrong
+    numWrongB = 0
+    numWrongB += sum(0 if song in p2 else 1 for song in c1)
+
+    return min(numWrongA, numWrongB)
