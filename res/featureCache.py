@@ -2,8 +2,8 @@ import soundcloud
 import json
 import os
 import sys
-import numpy
-import yaafelib as yaafe
+# import numpy
+# import yaafelib as yaafe
 
 class FeatureCache:
     def __init__(self):
@@ -16,16 +16,16 @@ class FeatureCache:
         self.client = soundcloud.Client(client_id="94931d15df645c93103e0cd600377922")
 
         # Define the features plan
-        self.fp = yaafe.FeaturePlan(sample_rate=44100, normalize=None, resample=True)
-        self.fp.loadFeaturePlan('featureplan')
+        # self.fp = yaafe.FeaturePlan(sample_rate=44100, normalize=None, resample=True)
+        # self.fp.loadFeaturePlan('featureplan')
 
-        # Initialize yaafe engine
-        self.engine = yaafe.Engine()
-        if not self.engine.load(self.fp.getDataFlow()):
-            print 'MAJOR ERROR: YAAFE FAILED TO LOAD'
-            sys.exit()
-        # Initialize file processor
-        self.afp = yaafe.AudioFileProcessor()
+        # # Initialize yaafe engine
+        # self.engine = yaafe.Engine()
+        # if not self.engine.load(self.fp.getDataFlow()):
+        #     print 'MAJOR ERROR: YAAFE FAILED TO LOAD'
+        #     sys.exit()
+        # # Initialize file processor
+        # self.afp = yaafe.AudioFileProcessor()
 
 
     def loadFromFile(self):
@@ -63,22 +63,22 @@ class FeatureCache:
         if hasattr(track, 'download_count'):
             featureVector['download_count'] = track.download_count
 
-        filename = './downloads/' + str(songID) + '.mp3'
-        if not os.path.isfile(filename):
-            url = track['permalink_url']
-            os.system('python soundcloud-downloader.py ' + track['permalink_url'])
+        # filename = './downloads/' + str(songID) + '.mp3'
+        # if not os.path.isfile(filename):
+        #     url = track['permalink_url']
+        #     os.system('python soundcloud-downloader.py ' + track['permalink_url'])
 
-        self.afp.processFile(self.engine, filename)
-        output = self.engine.readAllOutputs()
-        featureVector['avgVolume'] = numpy.mean(output['loudness'])
-        featureVector['beginVolume'] = numpy.mean(output['loudness'][:100])
-        featureVector['endVolume'] = numpy.mean(output['loudness'][-100:])
-        featureVector['maxVolume'] = numpy.percentile(output['loudness'], 90)
-        featureVector['minVolume'] = numpy.percentile(output['loudness'], 10)
-        featureVector['volumeVar'] = numpy.var(output['loudness'])
-        featureVector['highFreq'] = numpy.percentile(output['maxfreq'], 90)
-        featureVector['midFreq'] = numpy.percentile(output['maxfreq'], 50)
-        featureVector['lowFreq'] = numpy.percentile(output['maxfreq'], 10)
+        # self.afp.processFile(self.engine, filename)
+        # output = self.engine.readAllOutputs()
+        # featureVector['avgVolume'] = numpy.mean(output['loudness'])
+        # featureVector['beginVolume'] = numpy.mean(output['loudness'][:100])
+        # featureVector['endVolume'] = numpy.mean(output['loudness'][-100:])
+        # featureVector['maxVolume'] = numpy.percentile(output['loudness'], 90)
+        # featureVector['minVolume'] = numpy.percentile(output['loudness'], 10)
+        # featureVector['volumeVar'] = numpy.var(output['loudness'])
+        # featureVector['highFreq'] = numpy.percentile(output['maxfreq'], 90)
+        # featureVector['midFreq'] = numpy.percentile(output['maxfreq'], 50)
+        # featureVector['lowFreq'] = numpy.percentile(output['maxfreq'], 10)
 
         self.features[songID]['features'] = featureVector
 
