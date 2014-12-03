@@ -18,16 +18,16 @@ class FeatureCache:
         self.client = soundcloud.Client(client_id="94931d15df645c93103e0cd600377922")
 
         # Define the features plan
-        # self.fp = yaafe.FeaturePlan(sample_rate=44100, normalize=None, resample=True)
-        # self.fp.loadFeaturePlan('featureplan')
+        self.fp = yaafe.FeaturePlan(sample_rate=44100, normalize=None, resample=True)
+        self.fp.loadFeaturePlan('featureplan')
 
-        # # Initialize yaafe engine
-        # self.engine = yaafe.Engine()
-        # if not self.engine.load(self.fp.getDataFlow()):
-        #     print 'MAJOR ERROR: YAAFE FAILED TO LOAD'
-        #     sys.exit()
-        # # Initialize file processor
-        # self.afp = yaafe.AudioFileProcessor()
+        # Initialize yaafe engine
+        self.engine = yaafe.Engine()
+        if not self.engine.load(self.fp.getDataFlow()):
+            print 'MAJOR ERROR: YAAFE FAILED TO LOAD'
+            sys.exit()
+        # Initialize file processor
+        self.afp = yaafe.AudioFileProcessor()
 
 
     def loadFromFile(self):
@@ -53,7 +53,7 @@ class FeatureCache:
               if version == self.currentVersion:
                   return features
 
-        print 'Creating New Feature for Song: ', songID
+        # print 'Creating New Feature for Song: ', songID
         return self.createNewEntry(songID)
 
     def createNewEntry(self, songID):

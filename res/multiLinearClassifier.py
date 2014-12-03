@@ -25,9 +25,6 @@ def main():
     #print assignment, trainScore, validationScore
     #results[assignment] = (classifier.weights, trainScore, validationScore)
 
-def loadPlaylists():
-    return json.load(open('playlistPairs.json'))
-
 def generateNewAssignment(oldAssignments, count):
   while True:
     assignment = ''.join(random.choice('01') for _ in range(count))

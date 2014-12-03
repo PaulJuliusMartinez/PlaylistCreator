@@ -1,4 +1,8 @@
 from collections import Counter
+import json
+
+def loadPlaylists():
+    return json.load(open('playlistPairs.json'))
 
 def dotProduct(d1, d2):
     if len(d1) < len(d2):
