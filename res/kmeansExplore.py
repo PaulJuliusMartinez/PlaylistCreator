@@ -89,37 +89,37 @@ class KMeansExploreClassifier:
 		return playlists
 
 	def train(self, trainingPlaylistPairs):
-		totalLoss = 0
-		count = 0
 		numIters = 20
 		eta = 0.1
-		for trainPair in trainingPlaylistPairs:
-			count += 1
-			songs = trainPair[0] + trainPair[1]
+		bestLosses = [2] * self.beamSize
+		bestWeights = [Counter()] * self.beamSize
+		for _ in xrange(numIters):
+			possibleDirections = self.generatePossibleDirections()
+			for weights in self.bestWeights:
+				for i in xrange(len(possibleDirections)):
+					totalLoss = 0
+					currentWeights = weights + possibleDirections[i]
 
-			bestLosses = [500] * self.beamSize
-			bestWeights = [Counter()] * self.beamSize
-			for _ in xrange(numIters):
-				possibleDirections = self.generatePossibleDirections()
+					for trainPair in trainingPlaylistPairs:
+						songs = trainPair[0] + trainPair[1]
 				
-
-				for weights in copy.deepcopy(self.bestWeights):
-					for i in xrange(len(possibleDirections)):
-						currentWeights = weights + possibleDirections[i]
 						playlists = self.cluster(currentWeights, songs)
 						loss = self.loss(playlists, trainPair)
-						if loss < max(bestLosses): 
-							for index in range(self.beamSize):
-								if loss < bestLosses[index]:
-									bestLosses[index] = loss
-									newBestWeight = Counter()
-									for key in weights:
-										newBestWeight[key] = weights[key] + eta * possibleDirections[i][key]
-									bestWeights[index] = newBestWeight
-				self.bestWeights = bestWeights
+						totalLoss += float(loss) / len(songs)
 
-			totalLoss += float(bestLosses[0]) / len(songs)
-			print "Average Training Loss:", totalLoss / count
+					averageLoss = totalLoss / len(trainingPlaylistPairs)
+					#update best weights
+					for index in range(self.beamSize):
+						if averageLoss < bestLosses[index]:
+							bestLosses.insert(index, averageLoss)
+							bestLosses.pop(self.beamSize)
+							newBestWeight = Counter()
+							for key in weights:
+								newBestWeight[key] = weights[key] + eta * possibleDirections[i][key]
+							bestWeights.insert(index, newBestWeight)
+							bestWeights.pop(self.beamSize)
+			self.bestWeights = bestWeights
+			print "Best Average Training Loss:", bestLosses[0]
 
 	def test(self, testingPlaylistPairs):
 		totalLoss = 0
@@ -132,6 +132,18 @@ class KMeansExploreClassifier:
 			loss = self.loss(playlists, testPair)
 			totalLoss += float(loss) / len(songs)
 			print "Average Testing Loss:", totalLoss / count
+
+	def validate(self, validationPlaylistPairs):
+		totalLoss = 0
+		count = 0
+		for testPair in validationPlaylistPairs:
+			count += 1
+			songs = testPair[0] + testPair[1]
+			playlists = self.cluster(self.bestWeights[0], songs)
+
+			loss = self.loss(playlists, testPair)
+			totalLoss += float(loss) / len(songs)
+			print "Average Validation Loss:", totalLoss / count
 
 def randomAssignPlaylists(songs):
 	playlists = [[],[]]
@@ -155,9 +167,13 @@ def randomAssignmentTest(classifier, testingPlaylistPairs):
 random.seed()
 classifier = KMeansExploreClassifier()
 playlists = loadPlaylists()
-train = playlists[:20]
-test = playlists[20:30]
+train = playlists[:40]
+validation = playlists[40:60]
+validation2 = playlists[60:80]
+test = playlists[80:110]
 classifier.train(train)
+classifier.validate(validation)
+classifier.validate(validation2)
 classifier.test(test)
 randomAssignmentTest(classifier, test)
 
