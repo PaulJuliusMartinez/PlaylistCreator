@@ -43,20 +43,28 @@ class KMeansExploreClassifier:
 			dist2 = self.weightedDistance(weights, self.featureCache.getFeature(song), self.centroids[1])
 			if dist1 < dist2: 
 				if len(playlists[0]) < playlistLength: playlists[0].append((dist1, song))
-				elif dist1 < min(playlists[0]):
+				elif dist1 <= max(playlists[0]):
 					toSwap = max(playlists[0])
-					playlist[0].remove(toSwap)
+					playlists[0].remove(toSwap)
 					newDistance = self.weightedDistance(weights, self.featureCache.getFeature(toSwap[1]), self.centroids[1])
 					playlists[1].append((newDistance, toSwap[1]))
+					playlists[0].append((dist1, song))
 				else: playlists[1].append((dist2, song))
-			else: 
+			else:
 				if len(playlists[1]) < playlistLength: playlists[1].append((dist2, song))
-				elif dist2 < min(playlists[1]):
+				elif dist2 <= max(playlists[1]):
 					toSwap = max(playlists[1])
-					playlist[1].remove(toSwap)
-					newDistance = self.weightedDistance(weights, sef.featureCache.getFeature(toSwap[1]), self.centroids[0])
-					playlsts[0].append(newDistance, toSwap[1])
+					playlists[1].remove(toSwap)
+					newDistance = self.weightedDistance(weights, self.featureCache.getFeature(toSwap[1]), self.centroids[0])
+					playlists[0].append((newDistance, toSwap[1]))
+					playlists[1].append((dist2, song))
 				else: playlists[0].append((dist1, song))
+		
+		for playlist in playlists:
+			for index in xrange(len(playlist)):
+				playlist[index] = playlist[index][1]
+		
+		if len(playlists[0]) != playlistLength or len(playlists[1]) != playlistLength: print "ERROR: NOT ALL SONGS ASSIGNED"
 		return playlists
 
 	def updateCentroids(self, playlists):
